@@ -105,3 +105,4 @@ async (c) =>{
 }
 
 )
+export default app;
