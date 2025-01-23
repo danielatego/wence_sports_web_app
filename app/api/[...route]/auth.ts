@@ -47,7 +47,7 @@ const app = new Hono()
         const sessionToken = await generateSessionToken();
         const session = await createSession(sessionToken,existingUser.id);
         const expires = new Date(Date.now() + 60*60*24*30 * 1000).toUTCString(); 
-        const cookie = `sessionId=${session.id}; HttpOnly; Secure; Path=/; Max-Age=${expires}`;
+        const cookie = `sessionId=${session.id}; HttpOnly; Secure; Path=/; Expires=${expires}`;
         c.header(
             "Set-Cookie",cookie,
             {
@@ -89,7 +89,7 @@ async (c) =>{
         const sessionToken = await generateSessionToken();
         const session = await createSession(sessionToken,newUser.id);
         const expires = new Date(Date.now() + 60*60*24*30 * 1000).toUTCString(); 
-        const cookie = `sessionId=${session.id}; HttpOnly; Secure; Path=/; Max-Age=${expires}`;
+        const cookie = `sessionId=${session.id}; HttpOnly; Secure; Path=/; Expires=${expires}`;
         c.header( "Set-Cookie",cookie, { append:true },);
         c.header("Location","/",{append:true})
         const otp = Math.floor(100000+Math.random()* 900000).toString();
