@@ -148,7 +148,7 @@ async(c) =>{
         return c.json({ error: true, msg: "Invalid OTP" }, 400);
         }
 
-        await db.update(users).set({otp:null,otpExpiresAt:null}).where(eq(users.id,user.id))
+        const [updatedUser]=await db.update(users).set({otp:null,otpExpiresAt:null,emailVerified:true}).where(eq(users.id,user.id)).returning()
         await deleteSession(user.id);
         const sessionToken = await generateSessionToken();
         const session = await createSession(sessionToken,user.id);
@@ -164,11 +164,60 @@ async(c) =>{
         return c.json({
             error:false,
             msg:"Account verified successfully",
+            user:{
+                name:updatedUser.name,
+                email:updatedUser.email,
+                picture:updatedUser.picture,
+                emailVerified:updatedUser.emailVerified
+            }
         },200)
     }catch(error){
         return c.json({error:true,msg:"Failed to verify OTP"},500)
     }
     
 }   
+)
+.post("resendOtp",zValidator("json",otpSchema.omit({otp:true}),(result,c)=>{
+    if(!result.success){
+        const errorMessages = zodErrorHandler(result.error);
+        return c.json({...errorMessages},400)
+    }
+}),
+async(c)=>{
+    const values = c.req.valid("json");
+    try{    
+        const [user] = await db.select().from(users).where(eq(users.email,values.email));
+        if (!user || user.isDeleted) {
+        return c.json({ error: true, msg: "User not found" }, 404);
+        }
+        if (user.isBlocked) {
+        return c.json({ error: true, msg: "User is blocked" }, 400);
+        }
+        await deleteSession(user.id)
+        const sessionToken = await generateSessionToken();
+        const session = await createSession(sessionToken,user.id);
+        const expires = new Date(Date.now() + 60*60*24*30 * 1000).toUTCString(); 
+        const cookie = `sessionId=${session.id}; HttpOnly; Secure; Path=/; Expires=${expires}`;
+        c.header( "Set-Cookie",cookie, { append:true },);
+        c.header("Location","/",{append:true})
+        const otp = Math.floor(100000+Math.random()* 900000).toString();
+        const otpExpiresAt = new Date(Date.now() + 10*60*1000);
+        await db.update(users).set({otp:otp,otpExpiresAt:otpExpiresAt}).where(eq(users.id,user.id));
+        await sendWelcomeEmail(user.email,otp)
+
+        return c.json({
+            error:false,
+            msg:"Otp resent successfully",
+        },200)
+    }
+    catch{
+        return c.json({
+            error:true,
+            msg:"Failed to Resend Otp"
+        },400)
+    
+    }
+}
+
 )
 export default app;
