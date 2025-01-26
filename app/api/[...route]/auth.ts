@@ -96,7 +96,17 @@ async (c) =>{
         const otpExpiresAt = new Date(Date.now() + 10*60*1000);
         await db.update(users).set({otp:otp,otpExpiresAt:otpExpiresAt}).where(eq(users.id,newUser.id));
         await sendWelcomeEmail(newUser.email,otp)
-        return c.json({ error:false, email:newUser.email })
+        return c.json(
+            { 
+                error:false,
+                msg:"New user created", 
+                user:{
+                    name:newUser.name,
+                    email:newUser.email,
+                    picture:newUser.picture,
+                    emailVerified:newUser.emailVerified
+                }
+            },200)
     }
     catch(error){
         console.table(error);
