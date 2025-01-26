@@ -5,7 +5,7 @@ import { OtpResult, ResendOtp, verifyUserEmail } from "@/lib/server/useractions/
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-export const otpSchema = z.object({
+ const otpSchema = z.object({
     otp:z.string().length(6,"The otp is not valid"),
     email:z.string().email('The email is invalid')
 })

@@ -1,4 +1,5 @@
 import { Hono } from "hono"
+import {z } from "zod"
 import {zValidator} from "@hono/zod-validator"
 import { LoginSchema } from "@/app/login/email_and_password/actions"
 import {zodErrorHandler} from "@/lib/zodErrors"
@@ -11,7 +12,13 @@ import { SignUpSchema } from "@/app/signup/actions"
 import { getUser, userExists } from "@/lib/server/useractions/action"
 import { generateId } from "lucia"
 import { sendWelcomeEmail } from "@/lib/mail"
-import { otpSchema } from "@/app/emailverification/action"
+
+const otpSchema = z.object(
+    {
+        otp:z.string().length(6,"The otp is not valid"),
+        email:z.string().email('The email is invalid')
+    }
+)
 
 
 const app = new Hono()
