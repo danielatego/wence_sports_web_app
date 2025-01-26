@@ -11,6 +11,7 @@ import { SignUpSchema } from "@/app/signup/actions"
 import { getUser, userExists } from "@/lib/server/useractions/action"
 import { generateId } from "lucia"
 import { sendWelcomeEmail } from "@/lib/mail"
+import { otpSchema } from "@/app/emailverification/action"
 
 
 const app = new Hono()
@@ -73,7 +74,7 @@ const app = new Hono()
     }
 }),
 async (c) =>{
-    const values = await c.req.valid("json");
+    const values = c.req.valid("json");
     try{
         const userAvailable = await userExists(values.email);
         if(userAvailable){
@@ -113,6 +114,54 @@ async (c) =>{
         return c.json({error:true,msg:`Sign up failed`},500)
     }
 }
+)
+.post("verifyEmail",zValidator("json",otpSchema,(result,c)=>{
+    if(!result.success){
+        const errorMessages = zodErrorHandler(result.error)
+        return c.json({...errorMessages},400)
+    }
+}),
+async(c) =>{
+    const values = c.req.valid("json");
+    try{
+        const [user] = await db.select().from(users).where(eq(users.email,values.email));
+        if (!user || user.isDeleted) {
+        return c.json({ error: true, msg: "User not found" }, 404);
+        }
+        if (user.isBlocked) {
+        return c.json({ error: true, msg: "User is blocked" }, 400);
+        }
+        if (!user.otp || !user.otpExpiresAt) {
+        return c.json({ error: true, msg: "No OTP generated" }, 400);
+        }
+        if (new Date() > user.otpExpiresAt) {
+        return c.json({ error: true, msg: "OTP expired" }, 400);
+        }
+        if (user.otp !== values.otp) {
+        return c.json({ error: true, msg: "Invalid OTP" }, 400);
+        }
 
+        await db.update(users).set({otp:null,otpExpiresAt:null}).where(eq(users.id,user.id))
+        await deleteSession(user.id);
+        const sessionToken = await generateSessionToken();
+        const session = await createSession(sessionToken,user.id);
+        const expires = new Date(Date.now() + 60*60*24*30 * 1000).toUTCString(); 
+        const cookie = `sessionId=${session.id}; HttpOnly; Secure; Path=/; Expires=${expires}`;
+        c.header(
+            "Set-Cookie",cookie,
+            {
+                append:true
+            }
+        );
+        c.header("Location","/",{append:true});
+        return c.json({
+            error:false,
+            msg:"Account verified successfully",
+        },200)
+    }catch(error){
+        return c.json({error:true,msg:"Failed to verify OTP"},500)
+    }
+    
+}   
 )
 export default app;
