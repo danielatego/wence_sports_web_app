@@ -228,6 +228,15 @@ export async function userExists (email:string) : Promise<boolean>{
     }
     return true;
 }
+export async function googleUserExists (googleId:string) : Promise<boolean>{
+    const existingUser = await db.query.users.findFirst({
+        where:eq(users.googleId,googleId)
+    })
+    if(existingUser===undefined){
+        return false
+    }
+    return true;
+}
 export async function getUser (email:string,password:string) : Promise<ErrorState>{
 
     const [existingUser] = await db.select().from(users).where(eq(users.email, email))

@@ -9,9 +9,11 @@ import { eq } from "drizzle-orm"
 import bcrypt from 'bcrypt'
 import { createSession, deleteSession, generateSessionToken } from "@/lib/server/sessionactions/action"
 import { SignUpSchema } from "@/app/signup/actions"
-import { getUser, userExists } from "@/lib/server/useractions/action"
+import { getUser, googleUserExists, userExists } from "@/lib/server/useractions/action"
 import { generateId } from "lucia"
 import { sendWelcomeEmail } from "@/lib/mail"
+import { decodeIdToken } from "arctic"
+import { ObjectParser } from "@pilcrowjs/object-parser"
 
 const otpSchema = z.object(
     {
@@ -219,5 +221,109 @@ async(c)=>{
     }
 }
 
+)
+.post("googleSignIn",zValidator("json",z.object({tokenId:z.string()}),(result,c)=>{
+    if(!result.success){
+        const errorMessages = zodErrorHandler(result.error);
+        return c.json({...errorMessages},400)
+    }
+}),
+async (c) =>{
+    const values = c.req.valid("json");
+    try{
+        const claims = decodeIdToken(values.tokenId);
+        const claimsParser = new ObjectParser(claims);
+        const googleId = claimsParser.getString("sub");
+        const name = claimsParser.getString("name");
+        const picture = claimsParser.getString("picture");
+        const email = claimsParser.getString("email");
+
+        if(await userExists(email)){
+            if(await googleUserExists(googleId)){
+                const [user] = await db.select().from(users).where(eq(users.email,email));
+                await deleteSession(user.id);
+                const sessionToken = await generateSessionToken();
+                const session = await createSession(sessionToken,user.id);
+                const expires = new Date(Date.now() + 60*60*24*30 * 1000).toUTCString(); 
+                const cookie = `sessionId=${session.id}; HttpOnly; Secure; Path=/; Expires=${expires}`;
+                c.header(
+                    "Set-Cookie",cookie,
+                    {
+                        append:true
+                    }
+                );
+                return c.json({
+                    error:false,
+                    msg:"Account verified successfully",
+                    user:{
+                        name:user.name,
+                        email:user.email,
+                        picture:user.picture,
+                        emailVerified:user.emailVerified
+                    }
+                },200);
+
+            }else{
+                const [updatedUser] = await db.update(users).set({googleId:googleId,picture:picture,emailVerified:true}).where(eq(users.email,email)).returning();
+                await deleteSession(updatedUser.id);
+                const sessionToken = await generateSessionToken();
+                const session = await createSession(sessionToken,updatedUser.id);
+                const expires = new Date(Date.now() + 60*60*24*30 * 1000).toUTCString(); 
+                const cookie = `sessionId=${session.id}; HttpOnly; Secure; Path=/; Expires=${expires}`;
+                c.header(
+                    "Set-Cookie",cookie,
+                    {
+                        append:true
+                    }
+                );
+                return c.json({
+                    error:false,
+                    msg:"Account updated successfully",
+                    user:{
+                        name:updatedUser.name,
+                        email:updatedUser.email,
+                        picture:updatedUser.picture,
+                        emailVerified:updatedUser.emailVerified
+                    }
+                },200);
+            }
+        }
+        const [createdUser] = await db.insert(users).values({
+            id:generateId(15),
+            name:name,
+            email:email,
+            picture:picture,
+            googleId:googleId
+
+        }).returning();
+        const sessionToken = await generateSessionToken();
+                const session = await createSession(sessionToken,createdUser.id);
+                const expires = new Date(Date.now() + 60*60*24*30 * 1000).toUTCString(); 
+                const cookie = `sessionId=${session.id}; HttpOnly; Secure; Path=/; Expires=${expires}`;
+                c.header(
+                    "Set-Cookie",cookie,
+                    {
+                        append:true
+                    }
+                );
+                return c.json({
+                    error:false,
+                    msg:"Account created successfully",
+                    user:{
+                        name:createdUser.name,
+                        email:createdUser.email,
+                        picture:createdUser.picture,
+                        emailVerified:createdUser.emailVerified
+                    }
+                },200);
+
+
+    }catch{
+        return c.json({
+            error:true,
+            msg:"failed to verify user"
+        },400)
+    }
+}
 )
 export default app;
