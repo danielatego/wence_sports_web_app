@@ -224,7 +224,7 @@ async(c)=>{
 }
 
 )
-.post("googleSignIn",zValidator("json",insertUserSchema,(result,c)=>{
+.post("googleSignIn",zValidator("json",insertUserSchema.omit({id:true}),(result,c)=>{
     if(!result.success){
         const errorMessages = zodErrorHandler(result.error);
         return c.json({...errorMessages},400)
