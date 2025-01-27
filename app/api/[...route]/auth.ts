@@ -26,7 +26,7 @@ const app = new Hono()
     "/emaillogin",zValidator("json",LoginSchema,(result,c) =>{
         if(!result.success){
             const errorMessages = zodErrorHandler(result.error);
-            return c.json({...errorMessages})
+            return c.json({...errorMessages},400)
         }
     }),
     async (c) =>{
