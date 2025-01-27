@@ -4,7 +4,7 @@ import {zValidator} from "@hono/zod-validator"
 import { LoginSchema } from "@/app/login/email_and_password/actions"
 import {zodErrorHandler} from "@/lib/zodErrors"
 import { db } from "@/db/drizzle"
-import { users } from "@/db/schema"
+import { insertUserSchema, users } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import bcrypt from 'bcrypt'
 import { createSession, deleteSession, generateSessionToken } from "@/lib/server/sessionactions/action"
@@ -21,6 +21,8 @@ const otpSchema = z.object(
         email:z.string().email('The email is invalid')
     }
 )
+
+
 
 
 const app = new Hono()
@@ -222,7 +224,7 @@ async(c)=>{
 }
 
 )
-.post("googleSignIn",zValidator("json",z.object({tokenId:z.string()}),(result,c)=>{
+.post("googleSignIn",zValidator("json",insertUserSchema,(result,c)=>{
     if(!result.success){
         const errorMessages = zodErrorHandler(result.error);
         return c.json({...errorMessages},400)
@@ -231,12 +233,10 @@ async(c)=>{
 async (c) =>{
     const values = c.req.valid("json");
     try{
-        const claims = decodeIdToken(values.tokenId);
-        const claimsParser = new ObjectParser(claims);
-        const googleId = claimsParser.getString("sub");
-        const name = claimsParser.getString("name");
-        const picture = claimsParser.getString("picture");
-        const email = claimsParser.getString("email");
+        const googleId = values.googleId!
+        const name = values.name
+        const picture = values.picture
+        const email = values.email
 
         if(await userExists(email)){
             if(await googleUserExists(googleId)){
@@ -293,7 +293,8 @@ async (c) =>{
             name:name,
             email:email,
             picture:picture,
-            googleId:googleId
+            googleId:googleId,
+            emailVerified:true,
 
         }).returning();
         const sessionToken = await generateSessionToken();
