@@ -14,6 +14,7 @@
     "@oslojs/crypto": "^1.0.1",
     "@oslojs/encoding": "^1.1.0",
     "@pilcrowjs/object-parser": "^0.0.4",
+    "@uploadthing/react": "^7.1.5",
     "arctic": "^3.1.2",
     "bcrypt": "^5.1.1",
     "clsx": "^2.1.1",
@@ -27,6 +28,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "resend": "^4.1.1",
+    "uploadthing": "^7.4.4",
     "zod": "^3.24.1",
     "zodErrors": "link:@/lib/zodErrors"
   },

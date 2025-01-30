@@ -2,6 +2,7 @@ import { globalGETRateLimit } from "@/lib/request";
 import { getCurrentSession } from "@/lib/server/sessionactions/action";
 import { redirect } from "next/navigation";
 import { LogoutButton } from "./ui/logout";
+import Link from "next/link";
 
 export default async function Home() {
 
@@ -21,6 +22,7 @@ export default async function Home() {
     <img src={user.picture??undefined} alt="profile picture" height={48}/>
     <br />
     <p>welcome {user.name} </p>
+    <Link href="/uploadImage">Upload an image</Link>
     <LogoutButton/>
     </>
    )

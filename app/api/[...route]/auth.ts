@@ -9,11 +9,11 @@ import { eq } from "drizzle-orm"
 import bcrypt from 'bcrypt'
 import { createSession, deleteSession, generateSessionToken } from "@/lib/server/sessionactions/action"
 import { SignUpSchema } from "@/app/signup/actions"
-import { getUser, googleUserExists, userExists } from "@/lib/server/useractions/action"
+import { googleUserExists, userExists } from "@/lib/server/useractions/action"
 import { generateId } from "lucia"
 import { sendWelcomeEmail } from "@/lib/mail"
-import { decodeIdToken } from "arctic"
-import { ObjectParser } from "@pilcrowjs/object-parser"
+import { createRouteHandler, UTApi, UTFile } from "uploadthing/server"
+import { ourFileRouter } from "../uploadthing/core";
 
 const otpSchema = z.object(
     {
@@ -22,12 +22,13 @@ const otpSchema = z.object(
     }
 )
 
-
+const handlers = createRouteHandler({
+    router: ourFileRouter,
+  });
 
 
 const app = new Hono()
-.post(
-    "/emaillogin",zValidator("json",LoginSchema,(result,c) =>{
+.post("/emaillogin",zValidator("json",LoginSchema,(result,c) =>{
         if(!result.success){
             const errorMessages = zodErrorHandler(result.error);
             return c.json({...errorMessages},400)
@@ -327,4 +328,68 @@ async (c) =>{
     }
 }
 )
+
+.all("uploadthing",async(c) => {
+    const body = await c.req.parseBody()
+    const email = body.email 
+    const files = body.image;
+   
+    if(!files || (Array.isArray(files) && files.length == 0)) {
+        return c.json({message: "No files uploaded"},400);
+    }
+
+    const fileArray = Array.isArray(files)? files: [files];
+
+    const processedImages = await Promise.all(
+        fileArray.map(async (file) => {
+            const buffer = Buffer.from(await file.arrayBuffer());
+            return {
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                buffer,
+            };
+        })
+    )
+    const utapi = new UTApi();
+
+    const file = new UTFile([processedImages[0].buffer], `${processedImages[0].name}`);
+    
+    try {
+        const response = await utapi.uploadFiles([file]);
+        const [user] = await db.select().from(users).where(eq(users.email,email as string));
+        if (!user || user.isDeleted) {
+        return c.json({ error: true, msg: "User not found" }, 404);
+        }
+        if (user.isBlocked) {
+        return c.json({ error: true, msg: "User is blocked" }, 400);
+        }
+        await deleteSession(user.id)
+        const sessionToken = await generateSessionToken();
+        const session = await createSession(sessionToken,user.id);
+        const expires = new Date(Date.now() + 60*60*24*30 * 1000).toUTCString(); 
+        const cookie = `sessionId=${session.id}; HttpOnly; Secure; Path=/; Expires=${expires}`;
+        c.header( "Set-Cookie",cookie, { append:true },);
+        c.header("Location","/",{append:true})
+        await db.update(users).set({picture:response[0].data?.url}).where(eq(users.id,user.id));
+        return c.json({
+            error:false,
+            msg:"Account verified successfully",
+            user:{
+                name:user.name,
+                email:user.email,
+                picture:user.picture,
+                emailVerified:user.emailVerified
+            }
+        },200)
+
+    } catch (error) {
+        console.log(error)
+        return c.json({
+            error:false,
+            msg:`Update failed ${error}`,
+        },400)
+
+    }
+})
 export default app;
