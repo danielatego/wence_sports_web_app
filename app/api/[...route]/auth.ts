@@ -378,15 +378,15 @@ async (c) =>{
         const cookie = `sessionId=${session.id}; HttpOnly; Secure; Path=/; Expires=${expires}`;
         c.header( "Set-Cookie",cookie, { append:true },);
         c.header("Location","/",{append:true})
-        await db.update(users).set({picture:response[0].data?.url}).where(eq(users.id,user.id));
+        const [updatedUser] = await db.update(users).set({picture:response[0].data?.url}).where(eq(users.id,user.id)).returning();
         return c.json({
             error:false,
             msg:"Account verified successfully",
             user:{
-                name:user.name,
-                email:user.email,
-                picture:user.picture,
-                emailVerified:user.emailVerified
+                name:updatedUser.name,
+                email:updatedUser.email,
+                picture:updatedUser.picture,
+                emailVerified:updatedUser.emailVerified
             }
         },200)
 
