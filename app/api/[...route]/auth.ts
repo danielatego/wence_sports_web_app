@@ -366,7 +366,7 @@ async (c) =>{
         }
         await deleteSession(user.id)
         const sessionToken = await generateSessionToken();
-        const session = await createSession(sessionToken,user.id);
+        const session =  await createSession(sessionToken,user.id);
         const expires = new Date(Date.now() + 60*60*24*30 * 1000).toUTCString(); 
         const cookie = `sessionId=${session.id}; HttpOnly; Secure; Path=/; Expires=${expires}`;
         c.header( "Set-Cookie",cookie, { append:true },);
