@@ -332,7 +332,7 @@ async (c) =>{
 .all("uploadthing",async(c) => {
     const body = await c.req.parseBody()
     const email = body.email 
-    const files = new UTFile(["hello"],"hello.txt")//body.image;
+    const files = body.image;
    
     if(!files || (Array.isArray(files) && files.length == 0)) {
         return c.json({message: "No files uploaded"},400);
@@ -343,6 +343,7 @@ async (c) =>{
     const processedImages = await Promise.all(
         fileArray.map(async (file) => {
             const buffer = Buffer.from(await file.arrayBuffer());
+
             return {
                 name: file.name,
                 type: file.type,
@@ -361,7 +362,9 @@ async (c) =>{
             console.log(response[0].error?.message)
             return c.json({ error: true, msg: "No response generated" }, 404);
         }
-        const [user] = await db.select().from(users).where(eq(users.email,email as string));
+        console.log(response[0].data?.url);
+        console.log(response[0].error?.message);
+        const [user] = await db.select().from(users).where(eq(users.email,"danielatego75@gmail.com"));
         if (!user || user.isDeleted) {
         return c.json({ error: true, msg: "User not found" }, 404);
         }
