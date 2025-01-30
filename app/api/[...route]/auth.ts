@@ -332,7 +332,7 @@ async (c) =>{
 .all("uploadthing",async(c) => {
     const body = await c.req.parseBody()
     const email = body.email 
-    const files = body.image;
+    const files = new UTFile(["hello"],"hello.txt")//body.image;
    
     if(!files || (Array.isArray(files) && files.length == 0)) {
         return c.json({message: "No files uploaded"},400);
@@ -357,6 +357,10 @@ async (c) =>{
     
     try {
         const response = await utapi.uploadFiles([file]);
+        if(response.length===0){
+            console.log(response[0].error?.message)
+            return c.json({ error: true, msg: "No response generated" }, 404);
+        }
         const [user] = await db.select().from(users).where(eq(users.email,email as string));
         if (!user || user.isDeleted) {
         return c.json({ error: true, msg: "User not found" }, 404);
