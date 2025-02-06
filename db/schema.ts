@@ -226,8 +226,8 @@ export const insertMatchScoreSchema = createInsertSchema(matchScores);
 
 export const categories = pgTable("categories", {
   id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  userId: text("user_id").notNull(),
+  name: text("name").notNull().unique(),
+  //userId: text("user_id").notNull(),
 });
 
 export const categoriesRelations = relations(categories, ({ many }) => ({
