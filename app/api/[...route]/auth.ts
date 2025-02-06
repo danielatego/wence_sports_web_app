@@ -331,7 +331,7 @@ async (c) =>{
 
 .all("uploadthing",async(c) => {
     const body = await c.req.parseBody()
-    const email = body.email 
+    const email = body.email as string;
     const files = body.image;
    
     if(!files || (Array.isArray(files) && files.length == 0)) {
@@ -364,7 +364,7 @@ async (c) =>{
         }
         console.log(response[0].data?.url);
         console.log(response[0].error?.message);
-        const [user] = await db.select().from(users).where(eq(users.email,"danielatego75@gmail.com"));
+        const [user] = await db.select().from(users).where(eq(users.email,email));
         if (!user || user.isDeleted) {
         return c.json({ error: true, msg: "User not found" }, 404);
         }
