@@ -19,12 +19,12 @@ export async function GET(request: Request): Promise<Response> {
 	const storedState = (await cookies()).get("google_oauth_state")?.value ?? null;
 	const codeVerifier = (await cookies()).get("google_code_verifier")?.value ?? null;
 	if (code === null || state === null || storedState === null || codeVerifier === null) {
-		return new Response("Please restart the process.", {
+		return new Response("Please restart the process.1", {
 			status: 400
 		});
 	}
 	if (state !== storedState) {
-		return new Response("Please restart the process.", {
+		return new Response("Please restart the process.2", {
 			status: 400
 		});
 	}
@@ -33,7 +33,7 @@ export async function GET(request: Request): Promise<Response> {
 	try {
 		tokens = await google.validateAuthorizationCode(code, codeVerifier);
 	} catch {
-		return new Response("Please restart the process.", {
+		return new Response("Please restart the process.3", {
 			status: 400
 		});
 	}
