@@ -28,6 +28,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "resend": "^4.1.1",
+    "sharp": "^0.33.5",
     "uploadthing": "^7.4.4",
     "zod": "^3.24.1",
     "zodErrors": "link:@/lib/zodErrors"

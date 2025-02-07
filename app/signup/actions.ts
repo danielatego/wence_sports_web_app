@@ -9,6 +9,10 @@ export type ErrorState = {
         password?:string[];
         confirmpassword?:string[];
         otp?:string[];
+        amount?:string[];
+        imageUrl?:string[];
+        categoryId?:string[];
+        description?:string[];
     };
     message?:string | null ;
     values?:{
@@ -17,6 +21,10 @@ export type ErrorState = {
         password?:string;
         confirmpassword?:string;
         otp?:string;
+        amount?:string[];
+        imageUrl?:string[];
+        categoryId?:string[];
+        description?:string[];
     }
     isSuccessful?:boolean ;
 }
