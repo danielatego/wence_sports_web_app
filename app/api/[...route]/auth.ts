@@ -394,7 +394,7 @@ async (c) =>{
         console.log(error)
         return c.json({
             error:false,
-            msg:`Update failed ${error}`,
+            msg:`Update failed wawaw ${error}`,
         },400)
 
     }
