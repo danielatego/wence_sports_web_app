@@ -362,31 +362,31 @@ async (c) =>{
             console.log(response[0].error?.message)
             return c.json({ error: true, msg: "No response generated" }, 404);
         }
-        console.log(response[0].data?.url);
-        console.log(response[0].error?.message);
-        const [user] = await db.select().from(users).where(eq(users.email,email));
-        if (!user || user.isDeleted) {
-        return c.json({ error: true, msg: "User not found" }, 404);
-        }
-        if (user.isBlocked) {
-        return c.json({ error: true, msg: "User is blocked" }, 400);
-        }
-        await deleteSession(user.id)
-        const sessionToken = await generateSessionToken();
-        const session =  await createSession(sessionToken,user.id);
-        const expires = new Date(Date.now() + 60*60*24*30 * 1000).toUTCString(); 
-        const cookie = `sessionId=${session.id}; HttpOnly; Secure; Path=/; Expires=${expires}`;
-        c.header( "Set-Cookie",cookie, { append:true },);
-        c.header("Location","/",{append:true})
-        const [updatedUser] = await db.update(users).set({picture:response[0].data?.url}).where(eq(users.id,user.id)).returning();
+        // console.log(response[0].data?.url);
+        // console.log(response[0].error?.message);
+        // const [user] = await db.select().from(users).where(eq(users.email,email));
+        // if (!user || user.isDeleted) {
+        // return c.json({ error: true, msg: "User not found" }, 404);
+        // }
+        // if (user.isBlocked) {
+        // return c.json({ error: true, msg: "User is blocked" }, 400);
+        // }
+        // await deleteSession(user.id)
+        // const sessionToken = await generateSessionToken();
+        // const session =  await createSession(sessionToken,user.id);
+        // const expires = new Date(Date.now() + 60*60*24*30 * 1000).toUTCString(); 
+        // const cookie = `sessionId=${session.id}; HttpOnly; Secure; Path=/; Expires=${expires}`;
+        // c.header( "Set-Cookie",cookie, { append:true },);
+        // c.header("Location","/",{append:true})
+        // const [updatedUser] = await db.update(users).set({picture:response[0].data?.url}).where(eq(users.id,user.id)).returning();
         return c.json({
             error:false,
             msg:"Account verified successfully",
             user:{
-                name:updatedUser.name,
-                email:updatedUser.email,
-                picture:updatedUser.picture,
-                emailVerified:updatedUser.emailVerified
+                name:"",
+                email:email,
+                picture:response[0].data?.url,
+                emailVerified:false
             }
         },200)
 
